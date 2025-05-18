@@ -3,121 +3,216 @@ using BookCatalogManagementApp.Models;
 using BookCatalogManagementApp.Repositories;
 using BookCatalogManagementApp.Extensions;
 using BookCatalogManagementApp.Responses;
+using BookCatalogManagementApp.Validators;
+using BookCatalogManagementApp.Messages;
 using Serilog;
-
 
 namespace BookCatalogManagementApp.Services
 {
     public class BookService : IBookService
     {
         private readonly IBookRepository _repository;
+        private readonly IBookValidator _bookValidator;
 
-        public BookService(IBookRepository repository)
+        public BookService(IBookRepository repository, IBookValidator bookValidator)
         {
             _repository = repository;
+            _bookValidator = bookValidator;
         }
 
         public async Task<ServiceResponse<List<BookDto>>> GetAllAsync()
         {
-            var books = await _repository.GetAllAsync();
-            var dtoList = books.Select(b => b.ToDto()).ToList();
-
-            Log.Information("Toplam, {x} kitap listelendi.", dtoList.Count);
-
-            return new ServiceResponse<List<BookDto>>
+            try
             {
-                Success = true,
-                Data = dtoList
-            };
+                var books = await _repository.GetAllAsync();
+                var dtoList = books.Select(b => b.ToDto()).ToList();
+
+                Log.Information(BookMessages.ListSuccess(dtoList.Count));
+
+                return new ServiceResponse<List<BookDto>>
+                {
+                    Success = true,
+                    Data = dtoList
+                };
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, BookMessages.ListError);
+
+                return new ServiceResponse<List<BookDto>>
+                {
+                    Success = false,
+                    Message = BookMessages.ListError,
+                    ErrorCode = "ListFailed"
+                };
+            }
         }
 
         public async Task<ServiceResponse<BookDto>> GetByIdAsync(int id)
         {
-            var book = await _repository.GetByIdAsync(id);
-            if (book == null)
+            try
             {
-                Log.Warning("{Id} id'sine sahip bir kitap bulunamadı.", id);
+                var book = await _repository.GetByIdAsync(id);
+                if (book == null)
+                {
+                    Log.Warning(BookMessages.NotFound(id));
+
+                    return new ServiceResponse<BookDto>
+                    {
+                        Success = false,
+                        Message = BookMessages.NotFound(id),
+                        ErrorCode = "NotFound"
+                    };
+                }
+
+                Log.Information(BookMessages.DetailsSuccess(id));
+
+                return new ServiceResponse<BookDto>
+                {
+                    Success = true,
+                    Data = book.ToDto(),
+                };
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, BookMessages.ListError);
 
                 return new ServiceResponse<BookDto>
                 {
                     Success = false,
-                    Message = "Kitap bulunamadı",
-                    ErrorCode = "NotFound"
+                    Message = BookMessages.ListError,
+                    ErrorCode = "GetFailed"
                 };
             }
-            Log.Information("Kitap detayları getirildi. Id = {Id}", id);
-
-            return new ServiceResponse<BookDto>
-            {
-                Success = true,
-                Data = book.ToDto()
-            };
         }
 
         public async Task<ServiceResponse<string>> AddAsync(CreateBookDto dto)
         {
-            var book = dto.ToEntity();
-            await _repository.AddAsync(book);
-
-            return new ServiceResponse<string>
+            if (!_bookValidator.Validate(dto, out var validationError))
             {
-                Success = true,
-                Message = "Kitap başarıyla eklendi"
-            };
+                return new ServiceResponse<string>
+                {
+                    Success = false,
+                    Message = validationError,
+                    ErrorCode = "ValidationError"
+                };
+            }
+
+            try
+            {
+                var book = dto.ToEntity();
+                await _repository.AddAsync(book);
+
+                Log.Information(BookMessages.CreateSuccess + " {@Book}", dto);
+
+                return new ServiceResponse<string>
+                {
+                    Success = true,
+                    Message = BookMessages.CreateSuccess
+                };
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, BookMessages.CreateError);
+
+                return new ServiceResponse<string>
+                {
+                    Success = false,
+                    Message = BookMessages.CreateError,
+                    ErrorCode = "CreateFailed"
+                };
+            }
         }
 
         public async Task<ServiceResponse<string>> UpdateAsync(UpdateBookDto dto)
         {
-            var existing = await _repository.GetByIdAsync(dto.Id);
-            if (existing == null)
+            if (!_bookValidator.Validate(dto, out var validationError))
             {
-                Log.Warning("Güncellenecek kitap bulunamadı. Id = {Id}", dto.Id);
+                return new ServiceResponse<string>
+                {
+                    Success = false,
+                    Message = validationError,
+                    ErrorCode = "ValidationError"
+                };
+            }
+
+            try
+            {
+                var existing = await _repository.GetByIdAsync(dto.Id);
+                if (existing == null)
+                {
+                    Log.Warning(BookMessages.UpdateNotFound(dto.Id));
+
+                    return new ServiceResponse<string>
+                    {
+                        Success = false,
+                        Message = BookMessages.UpdateNotFound(dto.Id),
+                        ErrorCode = "NotFound"
+                    };
+                }
+
+                existing.UpdateEntity(dto);
+                await _repository.UpdateAsync(existing);
+
+                Log.Information(BookMessages.UpdateSuccess + " {@Book}", dto);
+
+                return new ServiceResponse<string>
+                {
+                    Success = true,
+                    Message = BookMessages.UpdateSuccess
+                };
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, BookMessages.UpdateError);
 
                 return new ServiceResponse<string>
                 {
                     Success = false,
-                    Message = "Güncellenecek kitap bulunamadı"
+                    Message = BookMessages.UpdateError,
+                    ErrorCode = "UpdateFailed"
                 };
             }
-
-            existing.UpdateEntity(dto);
-
-            await _repository.UpdateAsync(existing);
-
-            Log.Information("Kitap güncellendi: {@Book}", dto);
-
-
-            return new ServiceResponse<string>
-            {
-                Success = true,
-                Message = "Kitap başarıyla güncellendi"
-            };
         }
 
         public async Task<ServiceResponse<string>> DeleteAsync(int id)
         {
-            var existing = await _repository.GetByIdAsync(id);
-            if (existing == null)
+            try
             {
-                Log.Information("Silinecek kitap zaten yoktu. Id = {Id}", id);
+                var existing = await _repository.GetByIdAsync(id);
+                if (existing == null)
+                {
+                    Log.Information(BookMessages.DeleteNotFound(id));
+
+                    return new ServiceResponse<string>
+                    {
+                        Success = false,
+                        Message = BookMessages.DeleteNotFound(id),
+                        ErrorCode = "NoContent"
+                    };
+                }
+
+                await _repository.DeleteAsync(id);
+
+                Log.Information(BookMessages.DeleteSuccess(id));
+
+                return new ServiceResponse<string>
+                {
+                    Success = true,
+                    Message = BookMessages.DeleteSuccess(id)
+                };
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, BookMessages.DeleteError);
 
                 return new ServiceResponse<string>
                 {
                     Success = false,
-                    Message = "Silinecek kitap bulunamadı",
-                    ErrorCode = "NoContent"
+                    Message = BookMessages.DeleteError,
+                    ErrorCode = "DeleteFailed"
                 };
             }
-
-            await _repository.DeleteAsync(id);
-
-            Log.Information("Kitap silindi. Id = {Id}", id);
-
-            return new ServiceResponse<string>
-            {
-                Success = true,
-                Message = "Kitap başarıyla silindi"
-            };
         }
     }
 }

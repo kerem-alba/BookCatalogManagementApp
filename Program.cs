@@ -13,7 +13,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddScoped<IBookService, BookService>();
-builder.Services.AddScoped<IGenericRepository, GenericRepository>();
+builder.Services.AddScoped<IBookRepository, BookRepository>();
 builder.Services.AddScoped<IBookValidator, BookValidator>();
 
 Log.Logger = new LoggerConfiguration()
@@ -40,7 +40,6 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
-
 app.UseRouting();
 
 app.UseAuthorization();

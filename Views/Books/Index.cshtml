@@ -9,6 +9,7 @@
 <a class="btn btn-primary mb-3" asp-action="Create">Yeni Kitap Ekle</a>
 
 <table class="table table-bordered">
+
     <thead>
         <tr>
             <th>Başlık</th>
@@ -27,6 +28,7 @@
                 <td>@book.Genre</td>
                 <td>@book.PageCount</td>
                 <td>
+                    <a class="btn btn-sm btn-info" asp-action="Details" asp-route-id="@book.Id">Detay</a>
                     <a class="btn btn-sm btn-warning" asp-action="Update" asp-route-id="@book.Id">Düzenle</a>
                     <a class="btn btn-sm btn-danger" asp-action="Delete" asp-route-id="@book.Id">Sil</a>
                 </td>
