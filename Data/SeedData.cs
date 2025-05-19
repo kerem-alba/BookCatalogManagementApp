@@ -3,25 +3,29 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BookCatalogManagementApp.Data
 {
-    public class SeedData
+    public class SeedData : ISeedData
     {
-        public static void Initialize(IServiceProvider serviceProvider)
-        {
-            using (var context = new ApplicationDbContext(
-                serviceProvider.GetRequiredService<DbContextOptions<ApplicationDbContext>>()))
-            {
-                if (context.Books.Any())
-                {
-                    return;
-                }
+        private readonly ApplicationDbContext _context;
 
-                context.Books.AddRange(
-                    new Book { Title = "The Great Gatsby", Author = "F. Scott Fitzgerald", Genre = "Novel", PageCount = 180 },
-                    new Book { Title = "To Kill a Mockingbird", Author = "Harper Lee", Genre = "Classic", PageCount = 281 },
-                    new Book { Title = "1984", Author = "George Orwell", Genre = "Dystopian", PageCount = 328 }
-                );
-                context.SaveChanges();
+        public SeedData(ApplicationDbContext context)
+        {
+            _context = context;
+        }
+        public async Task InitializeAsync()
+        {
+
+            if (_context.Books.Any())
+            {
+                return;
             }
+
+            _context.Books.AddRange(
+                new Book { Title = "Tutunamayanlar", Author = "Oğuz Atay", Genre = "Roman", PageCount = 455 },
+                new Book { Title = "Nutuk", Author = "M.K. Atatürk", Genre = "Söylev", PageCount = 600 },
+                new Book { Title = "Sırça Köşk", Author = "Sabahattin Ali", Genre = "Hikaye", PageCount = 333 }
+            );
+            await _context.SaveChangesAsync();
         }
     }
 }
+

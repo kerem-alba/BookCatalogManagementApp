@@ -6,6 +6,7 @@ using BookCatalogManagementApp.Responses;
 using BookCatalogManagementApp.Validators;
 using BookCatalogManagementApp.Messages;
 using Serilog;
+using Humanizer;
 
 namespace BookCatalogManagementApp.Services
 {
@@ -88,12 +89,13 @@ namespace BookCatalogManagementApp.Services
 
         public async Task<ServiceResponse<string>> AddAsync(CreateBookDto dto)
         {
-            if (!_bookValidator.Validate(dto, out var validationError))
+            if (!_bookValidator.Validate(dto, out var validationErrorMessage))
             {
+                Log.Warning("{Message}: {ValidationError}", BookMessages.ValidationError, validationErrorMessage);
                 return new ServiceResponse<string>
                 {
                     Success = false,
-                    Message = validationError,
+                    Message = validationErrorMessage,
                     ErrorCode = "ValidationError"
                 };
             }
@@ -126,12 +128,13 @@ namespace BookCatalogManagementApp.Services
 
         public async Task<ServiceResponse<string>> UpdateAsync(UpdateBookDto dto)
         {
-            if (!_bookValidator.Validate(dto, out var validationError))
+            if (!_bookValidator.Validate(dto, out var validationErrorMessage))
             {
+                Log.Warning("{Message}: {ValidationError}", BookMessages.ValidationError, validationErrorMessage);
                 return new ServiceResponse<string>
                 {
                     Success = false,
-                    Message = validationError,
+                    Message = validationErrorMessage,
                     ErrorCode = "ValidationError"
                 };
             }
@@ -194,12 +197,12 @@ namespace BookCatalogManagementApp.Services
 
                 await _repository.DeleteAsync(id);
 
-                Log.Information(BookMessages.DeleteSuccess(id));
+                Log.Information(BookMessages.DeleteSuccess + "{@Book}", existing);
 
                 return new ServiceResponse<string>
                 {
                     Success = true,
-                    Message = BookMessages.DeleteSuccess(id)
+                    Message = BookMessages.DeleteSuccess
                 };
             }
             catch (Exception ex)

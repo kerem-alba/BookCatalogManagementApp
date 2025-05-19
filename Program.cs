@@ -15,11 +15,12 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddScoped<IBookService, BookService>();
 builder.Services.AddScoped<IBookRepository, BookRepository>();
 builder.Services.AddScoped<IBookValidator, BookValidator>();
+builder.Services.AddScoped<ISeedData, SeedData>();
+
 
 Log.Logger = new LoggerConfiguration()
     .ReadFrom.Configuration(builder.Configuration)
     .CreateLogger();
-
 builder.Host.UseSerilog();
 
 var app = builder.Build();
@@ -27,8 +28,11 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
-    SeedData.Initialize(services);
+    var seeder = services.GetRequiredService<ISeedData>();
+    await seeder.InitializeAsync();
 }
+
+
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())

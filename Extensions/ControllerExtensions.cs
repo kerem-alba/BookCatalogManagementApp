@@ -9,30 +9,29 @@ namespace BookCatalogManagementApp.Extensions
             this Controller controller,
             ServiceResponse<T> response,
             Func<T, IActionResult> onSuccess,
-            object? errorView = null)
+            object? errorViewModel = null)
         {
-            if (response.Success)
+            if (!string.IsNullOrWhiteSpace(response.Message))
             {
-                controller.TempData["SuccessMessage"] = response.Message;
-                return onSuccess(response.Data);
+                var key = response.Success ? "SuccessMessage" : "ErrorMessage";
+                controller.TempData[key] = response.Message;
             }
 
-            if (!string.IsNullOrEmpty(response.Message))
+            if (response.Success)
             {
-                controller.TempData["ErrorMessage"] = response.Message;
-                if (response.ErrorCode == "ValidationError")
-                    controller.ModelState.AddModelError(string.Empty, response.Message);
+                return onSuccess(response.Data!);
             }
 
             return response.ErrorCode switch
             {
                 "NotFound" => controller.NotFound(response.Message),
-                "ValidationError" => errorView != null ? controller.View(errorView) : controller.BadRequest(response.Message),
+                "ValidationError" => errorViewModel != null
+                    ? controller.View(errorViewModel)
+                    : controller.BadRequest(response.Message),
                 "Unauthorized" => controller.Unauthorized(),
                 "NoContent" => controller.NoContent(),
                 _ => controller.StatusCode(500, response.Message ?? "Bilinmeyen hata")
             };
         }
     }
-
 }

@@ -1,4 +1,5 @@
 ﻿using BookCatalogManagementApp.Dtos;
+using BookCatalogManagementApp.Messages;
 
 namespace BookCatalogManagementApp.Validators
 {
@@ -8,19 +9,25 @@ namespace BookCatalogManagementApp.Validators
         {
             if (string.IsNullOrWhiteSpace(dto.Title))
             {
-                errorMessage = "Başlık boş olamaz.";
+                errorMessage = BookMessages.TitleEmpty;
                 return false;
             }
 
             if (string.IsNullOrWhiteSpace(dto.Author))
             {
-                errorMessage = "Yazar adı boş olamaz.";
+                errorMessage = BookMessages.AuthorEmpty;
                 return false;
             }
 
-            if (dto.PageCount <= 0)
+            if (string.IsNullOrWhiteSpace(dto.Genre))
             {
-                errorMessage = "Sayfa sayısı 0'dan büyük olmalıdır.";
+                errorMessage = BookMessages.GenreEmpty;
+                return false;
+            }
+
+            if (dto.PageCount <= 5)
+            {
+                errorMessage = BookMessages.InvalidPageCount;
                 return false;
             }
 
@@ -32,7 +39,7 @@ namespace BookCatalogManagementApp.Validators
         {
             if (dto.Id <= 0)
             {
-                errorMessage = "Geçersiz kitap ID.";
+                errorMessage = BookMessages.InvalidId;
                 return false;
             }
 
